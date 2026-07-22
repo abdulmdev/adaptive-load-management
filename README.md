@@ -18,113 +18,84 @@ A distributed closed-loop rate limiter designed to protect microservices from ca
 ## 🏗️ High-Level System Architecture (HLD)
 
 ```mermaid
-flowchart TB
-    %% Client Tier
-    subgraph Clients["Client Tier (Global)"]
-        Mobile[Mobile Application]
-        Web[Web Dashboard]
-        ThirdParty[3rd Party APIs]
+flowchart TD
+    %% Tiers
+    Clients["📱 Global Clients (Web, Mobile, 3rd Party)"]
+    WAF["🛡️ WAF & Global Load Balancer"]
+    Gateway["🚪 API Gateway (Service Mesh Ingress)"]
+    
+    subgraph AppTier["⚙️ Application Tier (Stateless)"]
+        Order["📦 Order Service"]
+        Driver["🚗 Driver Service"]
+        Payment["💳 Payment Gateway Stub"]
     end
 
-    %% Edge Tier
-    subgraph Edge["Edge Tier (DMZ)"]
-        WAF[WAF & DDoS Protection]
-        GLB[Global Load Balancer]
+    subgraph DataTier["🗄️ Data & Caching Tier"]
+        Redis[("⚡ Redis Cluster (Rate Limits)")]
+        DB_Primary[("🐘 PostgreSQL (Primary)")]
+        DB_Replica[("🐘 PostgreSQL (Replica)")]
     end
 
-    %% Internal VPC
-    subgraph VPC["Internal VPC (Service Mesh)"]
-        Gateway[API Gateway / Ingress]
-        
-        subgraph AppTier["Application Tier (Stateless)"]
-            Order[Order Service]
-            Driver[Driver Service]
-            Payment[Payment Gateway Stub]
-        end
+    %% Flows
+    Clients -->|HTTPS| WAF
+    WAF -->|HTTPS| Gateway
+    Gateway -->|Internal HTTP/2| Order
+    Gateway -->|Internal HTTP/2| Driver
 
-        subgraph DataTier["Data & Caching Tier"]
-            Redis[(Redis Cluster\nRate Limits & Caching)]
-            DB_Primary[(PostgreSQL\nPrimary)]
-            DB_Replica[(PostgreSQL\nRead Replica)]
-        end
-    end
+    Order -.->|External API| Payment
 
-    %% Flow
-    Mobile --> |HTTPS / REST| WAF
-    Web --> |HTTPS / REST| WAF
-    ThirdParty --> |HTTPS / REST| WAF
-    WAF --> GLB
-    GLB --> Gateway
+    Order <-->|Atomic Lua Scripts| Redis
+    Driver <-->|Atomic Lua Scripts| Redis
 
-    Gateway --> |Internal HTTP/2| Order
-    Gateway --> |Internal HTTP/2| Driver
-
-    Order -.-> |External API| Payment
-
-    Order <--> |Lua Atomic Eval| Redis
-    Driver <--> |Lua Atomic Eval| Redis
-
-    Order --> |JDBC (Write/Read)| DB_Primary
-    Driver --> |JDBC (Write/Read)| DB_Primary
-    DB_Primary -.-> |Async Replication| DB_Replica
+    Order -->|JDBC| DB_Primary
+    Driver -->|JDBC| DB_Primary
+    DB_Primary -.->|Async Replication| DB_Replica
 
     %% Styling
-    classDef infra fill:#f1f8e9,stroke:#558b2f,stroke-width:2px;
     classDef edge fill:#fff3e0,stroke:#e65100,stroke-width:2px;
     classDef service fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef db fill:#f1f8e9,stroke:#558b2f,stroke-width:2px;
     
-    class Clients,WAF,GLB edge;
+    class Clients,WAF edge;
     class Gateway,Order,Driver,Payment service;
     class Redis,DB_Primary,DB_Replica db;
-    class VPC infra;
 ```
 
 ## 🔍 Adaptive Control Plane & Observability (Deep Dive)
 
 ```mermaid
 flowchart TD
-    subgraph AppMesh["Service Mesh / Application Tier"]
-        Microservice[Microservices\nwith @AdaptiveRateLimit Aspect]
+    Microservice["⚙️ Microservices (with @AdaptiveRateLimit)"]
+    
+    subgraph ControlPlane["🧠 Feedback Loop (Control Plane)"]
+        Kafka["📨 Apache Kafka (Telemetry Topic)"]
+        CP["🧮 Control Plane (TCP Vegas Math)"]
+        Redis[("⚡ Redis (Token Buckets)")]
     end
 
-    subgraph MessagingTier["Event Streaming Tier"]
-        ZK[Zookeeper] -.-> |Cluster Coord| Kafka[Apache Kafka Cluster\nTopic: microservice-telemetry]
-    end
-
-    subgraph ControlTier["Control Plane Tier"]
-        CP[Closed-Loop Control Plane\n(TCP Vegas Math)]
-    end
-
-    subgraph StateTier["Distributed State"]
-        Redis[(Redis Key-Value Store)]
-    end
-
-    subgraph ObsTier["Observability Stack"]
-        Prometheus[Prometheus Server]
-        Grafana[Grafana Dashboards]
+    subgraph ObsStack["📊 Observability Stack"]
+        Prometheus["📈 Prometheus Server"]
+        Grafana["🖥️ Grafana Dashboards"]
     end
 
     %% Async Telemetry Loop
-    Microservice -.->|1. Async Fire-and-Forget\n(Execution Latency ms)| Kafka
+    Microservice -.->|1. Async Fire-and-Forget Latency| Kafka
     Kafka ===>|2. Batch Consume| CP
     CP -->|3. Calculate Gradient & Choke Limit| CP
     CP -->|4. Persist Dynamic Limit| Redis
-    Microservice <-->|5. Token Bucket Check\n(Reject P2 if depleted)| Redis
+    Microservice <-->|5. Check Token Bucket (Drop P2)| Redis
 
     %% Metrics Pipeline
-    Prometheus -.->|Scrape /actuator/prometheus| Microservice
-    Prometheus -.->|Scrape /actuator/prometheus| CP
+    Prometheus -.->|Scrape Metrics| Microservice
+    Prometheus -.->|Scrape Metrics| CP
     Grafana -.->|PromQL Queries| Prometheus
 
     %% Styling
     classDef loop fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
     classDef obs fill:#fffde7,stroke:#f57f17,stroke-width:2px;
-    classDef stream fill:#e8eaf6,stroke:#283593,stroke-width:2px;
     
-    class CP,Redis loop;
+    class Kafka,CP,Redis loop;
     class Prometheus,Grafana obs;
-    class Kafka,ZK stream;
 ```
 
 ---
