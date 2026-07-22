@@ -83,7 +83,7 @@ flowchart TD
     Kafka -->|2. Batch Consume| CP
     CP -->|3. Calculate Gradient & Choke Limit| CP
     CP -->|4. Persist Dynamic Limit| Redis
-    Microservice <-->|5. Check Token Bucket (Drop P2)| Redis
+    Microservice -->|5. Check Token Bucket| Redis
 
     %% Metrics Pipeline
     Prometheus -.->|Scrape Metrics| Microservice
@@ -91,11 +91,11 @@ flowchart TD
     Grafana -.->|PromQL Queries| Prometheus
 
     %% Styling
-    classDef loop fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
-    classDef obs fill:#fffde7,stroke:#f57f17,stroke-width:2px;
+    classDef controlLoop fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
+    classDef monitor fill:#fffde7,stroke:#f57f17,stroke-width:2px;
     
-    class Kafka,CP,Redis loop;
-    class Prometheus,Grafana obs;
+    class Kafka,CP,Redis controlLoop;
+    class Prometheus,Grafana monitor;
 ```
 
 ---
