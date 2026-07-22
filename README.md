@@ -133,7 +133,7 @@ flowchart TD
 
 *When database latency spikes, the Control Plane immediately detects the degradation, drops the dynamic concurrency limit, and sheds background traffic to protect the system.*
 
-> **![Grafana Dashboard Showcase](./docs/dashboard.png)**
+> **![Grafana Dashboard Showcase](./dashboard.png)**
 > *(Note: Replace this image with a screenshot of your local Grafana dashboard showing the load test results!)*
 
 ---
