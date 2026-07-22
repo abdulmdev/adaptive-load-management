@@ -1,0 +1,83 @@
+{
+  "title": "Adaptive Load Management",
+  "uid": "uber-alm-01",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "panels": [
+    {
+      "title": "Requests (Allowed vs Shed)",
+      "type": "timeseries",
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(uber_ratelimit_requests_total{status=\"allowed\"}[5s])) by (tier)",
+          "legendFormat": "Allowed - {{tier}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(uber_ratelimit_requests_total{status=\"shed\"}[5s])) by (tier)",
+          "legendFormat": "Shed - {{tier}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "stacking": { "group": "A", "mode": "normal" }
+          }
+        }
+      }
+    },
+    {
+      "title": "Dynamic Concurrency Limit",
+      "type": "timeseries",
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "uber_ratelimit_concurrency_limit",
+          "legendFormat": "Concurrency Limit - {{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2
+          }
+        }
+      }
+    },
+    {
+      "title": "Latency (RTT)",
+      "type": "timeseries",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "uber_ratelimit_rtt_smoothed",
+          "legendFormat": "Smoothed RTT - {{endpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "uber_ratelimit_rtt_min",
+          "legendFormat": "Min RTT - {{endpoint}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2
+          }
+        }
+      }
+    }
+  ]
+}

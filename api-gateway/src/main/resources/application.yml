@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: order-service-route
+          uri: ${ORDER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - AddRequestHeader=X-Gateway-Received, true
+        - id: driver-service
+          uri: ${DRIVER_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/drivers/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
