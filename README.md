@@ -65,30 +65,30 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Microservice["⚙️ Microservices (with @AdaptiveRateLimit)"]
+    Microservice["Microservices"]
     
-    subgraph ControlPlane["🧠 Feedback Loop (Control Plane)"]
-        Kafka["📨 Apache Kafka (Telemetry Topic)"]
-        CP["🧮 Control Plane (TCP Vegas Math)"]
-        Redis[("⚡ Redis (Token Buckets)")]
+    subgraph ControlPlane["Feedback Loop"]
+        Kafka["Apache Kafka"]
+        CP["Control Plane"]
+        Redis[("Redis")]
     end
 
-    subgraph ObsStack["📊 Observability Stack"]
-        Prometheus["📈 Prometheus Server"]
-        Grafana["🖥️ Grafana Dashboards"]
+    subgraph ObsStack["Observability"]
+        Prometheus["Prometheus"]
+        Grafana["Grafana"]
     end
 
     %% Async Telemetry Loop
-    Microservice -.->|1. Async Fire-and-Forget Latency| Kafka
-    Kafka -->|2. Batch Consume| CP
-    CP -->|3. Calculate Gradient & Choke Limit| CP
-    CP -->|4. Persist Dynamic Limit| Redis
+    Microservice -->|1. Async Telemetry| Kafka
+    Kafka -->|2. Consume| CP
+    CP -->|3. Calculate Limits| CP
+    CP -->|4. Persist Limits| Redis
     Microservice -->|5. Check Token Bucket| Redis
 
     %% Metrics Pipeline
-    Prometheus -.->|Scrape Metrics| Microservice
-    Prometheus -.->|Scrape Metrics| CP
-    Grafana -.->|PromQL Queries| Prometheus
+    Prometheus -->|Scrape Metrics| Microservice
+    Prometheus -->|Scrape Metrics| CP
+    Grafana -->|Query Metrics| Prometheus
 
     %% Styling
     classDef controlLoop fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
