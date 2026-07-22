@@ -80,7 +80,7 @@ flowchart TD
 
     %% Async Telemetry Loop
     Microservice -.->|1. Async Fire-and-Forget Latency| Kafka
-    Kafka ===>|2. Batch Consume| CP
+    Kafka -->|2. Batch Consume| CP
     CP -->|3. Calculate Gradient & Choke Limit| CP
     CP -->|4. Persist Dynamic Limit| Redis
     Microservice <-->|5. Check Token Bucket (Drop P2)| Redis
